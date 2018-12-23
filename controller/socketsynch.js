@@ -166,8 +166,21 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     }
 
     if (txs.operation == 'interact') {
-        console.log('   >  >  > update_acount');
-        ////////////
+        console.log('   >  >  > interact');
+        try {
+            let newInteract = new Parse.Object('Interact');
+            newInteract.set('postHash', txs.params.object)
+            if (txs.params.content.type == 1) {
+                newInteract.set('comment', txs.params.content.text)
+            }
+            if (txs.params.content.type == 2) {
+                newInteract.set('reaction', txs.params.content.reaction)
+            }
+
+            _TO_SAVE.push(newPost);
+        } catch (err) {
+            console.log(err);
+        }
     }
 
     await Parse.Object.saveAll(_TO_SAVE, {useMasterKey: true});
