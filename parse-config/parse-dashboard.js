@@ -23,7 +23,7 @@ const parseDashboardOption = {
     users: [
         {
             user: 'forest',
-            pass: '$2y$12$5sKTrNeMdKT0IkHJkCa4guZ7iU7hf.Zqdq08Gm42D8R5PZkAUML4i' // eshoppanda
+            pass: '$2y$12$5sKTrNeMdKT0IkHJkCa4guZ7iU7hf.Zqdq08Gm42D8R5PZkAUML4i' // fnetwork
         }
     ],
     useEncryptedPasswords: true // @link: https://bcrypt-generator.com
