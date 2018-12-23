@@ -11,14 +11,16 @@ const { calculateEnergy } = require('../helpers/calculate');
 
 //---------------------------------------------------
 const subscribeHandler = async (event) => {
-    let currBlockAll = await blockSchema.find();
-    let currBlockObj = currBlockAll.length > 0 ? currBlockAll[0] : false;
-
-    if (!currBlockObj || typeof currBlockObj.currBlock != 'number') {
+    let blockQuery = new Parse.Query('Block');
+    blockQuery.exists('currBlock');
+    let currBlockAll = await blockQuery.first();
+    let currBlockObj = currBlockAll.has('currBlock') ? currBlockAll.get('currBlock') : false;
+    console.log(currBlockObj);
+    if (typeof currBlockObj != 'number') {
         console.log('Find nothing');
         return;
     }
-
+    console.log(currBlockObj);
     if (lockCurrBlock.isBusy()) {
         console.log('busy!!');
         return;
@@ -27,10 +29,7 @@ const subscribeHandler = async (event) => {
     console.log('now run!!!!!');
 
     let blockSyncFunction = () => {
-        // lay' cai so cua block moi trong event cho loop tu` currBlock object cho den do'
-        // sau khi loop xong cap nhat gia tri cua currBlockObj.currBlock 
-        return fetchAllBlocks(currBlockObj.currBlock, event.block.header.height).then(async (end) => {
-            await blockSchema.findByIdAndUpdate(currBlockObj._id, { currBlock: event.block.header.height })
+        return fetchAllBlocks(currBlockObj, Number(event.block.header.height)).then(async (end) => {
             return 'Done';
         });
     };
@@ -44,17 +43,25 @@ const subscribeHandler = async (event) => {
 };
 //---------------------------------------------------
 // Parse A Single Block
-handleSingleBlock = function (res) {
+handleSingleBlock = async function (res, currBlock) {
     if (!res.block.data.txs) {
+        console.log('[!!] - No Transaction!!!!');
         return Promise.resolve(false);
     }
     
     for (let i = 0; i < res.block.data.txs.length; i++) {
+        console.log('   >  transaction ' + i);
         let base64Txs = Buffer.from(res.block.data.txs[0], 'base64');
         let txs = decode(base64Txs);
-        let handleSingleTransaction = res.block.header.time;
-        await handleSingleTransaction(txs, handleSingleTransaction);
+        let bandwidthTime = res.block.header.time;
+        await handleSingleTransaction(txs, bandwidthTime);
     }
+
+    let blockQuery = new Parse.Query('Block');
+    blockQuery.exists('currBlock');
+    block = await blockQuery.first();
+    block.set('currBlock', currBlock);
+    await block.save();
 
     return Promise.resolve(true);
 };
@@ -63,18 +70,23 @@ handleSingleBlock = function (res) {
 // Parse A Single Transaction
 handleSingleTransaction = async function (txs, bandwidthTime) {
     let _TO_SAVE = [];
+    console.log('   >  >  bandwidthTime ' + bandwidthTime);
 
     let query = new Parse.Query('User');
     query.equalTo('publicKey', txs.account);
     let txsUser = await query.first();
 
     if (txsUser) {
+        console.log('   >  >  account ' + txs.account);
         txsUser.set('sequence', txs.sequence);
         txsUser.set('bandwidthTime', new Date(bandwidthTime));
         _TO_SAVE.push(txsUser);
+    } else {
+        console.log('[!!!] => ' + txs.account + ' not found in db');
     }
 
     if (txs.operation == 'create_account') {
+        console.log('   >  >  > create_account');
         let newUser = new Parse.User();
         newUser.set('publicKey', txs.params.address);
         newUser.set('sequence', 0);
@@ -87,22 +99,30 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     }
 
     if (txs.operation == 'payment') {
+        console.log('   >  >  > payment');
         let amount = txs.params.amount;
-        txsUser.increment('balance', amount * (-1));
+        if (txsUser) {
+            console.log('   >  >  >  >  ' + txsUser + 'decrease: ' + amount);
+            txsUser.increment('balance', amount * (-1));
+        }
 
         let recvUserQuery = new Parse.Query('User');
         recvUserQuery.equalTo('publicKey', txs.params.address);
         let recvUser = await recvUserQuery.first();
         if (recvUser) {
+            console.log('   >  >  >  >  ' + recvUser + 'decrease: ' + amount);
             recvUser.increment('balance', amount);
             _TO_SAVE.push(recvUser);
         }
     }
 
     if (txs.operation == 'post') {
+        console.log('   >  >  > post');
         try {
             const content = decodePost(txs.params.content);
             const hashCode = hash(txs);
+            console.log(hashCode);
+            console.log(content);
 
             let newPost = new Parse.Object('Post');
             newPost.set('type', content.type);
@@ -116,13 +136,16 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     }
 
     if (txs.operation == 'update_acount' && txsUser) {
+        console.log('   >  >  > update_acount');
         const updateKey = txs.params.key;
 
         if (updateKey == 'name') {
+            console.log('   >  >  >  > NAME');
             txsUser.set('name', txs.params.value.toString('utf-8'));
         }
 
         if (updateKey == 'picture') {
+            console.log('   >  >  >  > AVATAR');
             txsUser.set('picture', 'data:image/jpeg;base64,' + txs.params.value.toString('base64'));
         }
 
@@ -142,6 +165,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     }
 
     if (txs.operation == 'interact') {
+        console.log('   >  >  > update_acount');
         ////////////
     }
 
@@ -150,148 +174,28 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
 };
 
 //---------------------------------------------------
-client.subscribe({
-    query: "tm.event='NewBlock'"
-}, subscribeHandler).catch(e => console.log("ERR", e))
+//=====================[main]========================
+let moduleExporter = {};
+moduleExporter.init = function() {
+    client.subscribe({
+        query: "tm.event='NewBlock'"
+    }, subscribeHandler).catch(e => console.log("ERR", e));
+};
 
-// cách tuần tự
+//-----------------------------------------------------
 async function fetchAllBlocks(start, end) {
+    console.log('START FETCH FROM ' + start + ' to ' + end);
     for (let index = start + 1; index <= end; index++) {
         let res = await client.block({
             height: index
         });
 
-        await handleSingleBlock(res);
-        /*
-        if (res.block.data.txs) {
-            for (let i  = 0; i < res.block.data.txs.length;)
-            base64Txs = Buffer.from(res.block.data.txs[0], 'base64');
-            txs = decode(base64Txs);
+        console.log('[i] - NOW PARSING INDEX ', index);
 
-            switch (txs.operation) {
-                case 'create_account':
-                    await userSchema.updateOne({
-                        public_key: txs.account
-                    }, {
-                            $set: {
-                                sequence: txs.sequence,
-                            }
-                        })
-                    user = new userSchema({
-                        public_key: txs.params.address,
-                    })
-                    await user.save(function (err) {
-                        if (err) {
-                            console.log(err)
-                        }
-                    })
-                    break;
-
-                case 'payment':
-                    await userSchema.updateOne({
-                        public_key: txs.account
-                    }, {
-                            $set: {
-                                sequence: txs.sequence,
-                            },
-                            $inc: {
-                                balance: txs.params.amount * (-1),
-                            }
-                        })
-                    await userSchema.updateOne({
-                        public_key: txs.params.address
-                    }, {
-                            $inc: {
-                                balance: txs.params.amount,
-                            }
-                        })
-                    break;
-
-                case 'post':
-                    try {
-                        content = decodePost(txs.params.content)
-                        console.log(content);
-                        post = new postSchema({
-                            public_key: txs.account,
-                            content: {
-                                type: content.type,
-                                text: content.text
-                            }
-                        })
-                        await post.save(function (err) {
-                            if (err) {
-                                console.log(err)
-                            }
-                        })
-                        await userSchema.updateOne({
-                            public_key: txs.account
-                        }, {
-                                $set: {
-                                    sequence: txs.sequence,
-                                }
-                            })
-                    } catch (err) {
-                        console.log(err);
-                    }
-                    break;
-
-                case 'update_account':
-                    switch (txs.params.key) {
-                        case 'name':
-                            await userSchema.updateOne({
-                                public_key: txs.account
-                            }, {
-                                    $set: {
-                                        sequence: txs.sequence,
-                                        name: txs.params.value.toString('utf-8'),
-                                    }
-                                })
-                            break;
-
-                        case 'picture':
-                            await userSchema.updateOne({
-                                public_key: txs.account
-                            }, {
-                                    $set: {
-                                        sequence: txs.sequence,
-                                        picture: 'data:image/jpeg;base64,' + txs.params.value.toString('base64'),
-                                    }
-                                })
-                            break;
-
-                        case 'followings':
-                            try {
-                                addresses = decodeFollowing(txs.params.value).addresses
-                                followings = []
-                                for (let index = 0; index < addresses.length; index++) {
-                                    followings.push(base32.encode(addresses[index]))
-                                }
-                                await userSchema.updateOne({
-                                    public_key: txs.account
-                                }, {
-                                        $set: {
-                                            sequence: txs.sequence,
-                                            followings: followings,
-                                        }
-                                    })
-                            } catch (error) {
-                                console.log(error);
-                            }
-                            break;
-
-                        default:
-                            break;
-                    }
-
-                case 'interact':
-
-                    break;
-
-                default:
-                    break;
-            }
-        }*/
+        await handleSingleBlock(res, index);
     }
 
     return Promise.resolve(end);
 };
+
+module.exports = moduleExporter;

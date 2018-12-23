@@ -15,6 +15,9 @@ const parseDashboardOption = require('./parse-config/parse-dashboard');
 var parseDashboard = new ParseDashboard(parseDashboardOption);
 app.use('/dashboard', parseDashboard);
 
+let socketsynch = require('./controller/socketsynch');
+socketsynch.init();
+
 var port = process.env.PORT || 1337;
 app.listen(port, function() {
   console.log('eshop running on port ' + port + '.');

@@ -8,7 +8,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 //===========================[ PARSE OPTIONS - MAIN]===================
 const parseServerOption = {
-    databaseURI: process.env.DATABASE_URI || 'mongodb://localhost:27017/eshop',
+    databaseURI: process.env.DATABASE_URI || 'mongodb://localhost:27017/forest-network',
     cloud: process.env.CLOUD_CODE_MAIN || './cloud/main.js',
     appId: process.env.APP_ID || 'localAppId0123456789',
     masterKey: process.env.MASTER_KEY || 'localMasterKey0123456789',

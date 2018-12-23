@@ -19,6 +19,7 @@
     "parse-dashboard": "^1.2.0",
     "parse-server": "*",
     "pm2": "^3.2.2",
+    "stellar-base": "^0.10.0",
     "tendermint": "^3.4.0"
   }
 }
