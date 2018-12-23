@@ -134,7 +134,8 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
             console.log(err);
         }
     }
-
+    console.log(txs);
+    console.log(txsUser);
     if (txs.operation == 'update_acount' && txsUser) {
         console.log('   >  >  > update_acount');
         const updateKey = txs.params.key;
