@@ -6,7 +6,7 @@ const client = RpcClient('wss://komodo.forest.network:443');
 
 const { decode, hash } = require('../lib/tx/index');
 const base32 = require('base32.js');
-const { decodeFollowing, decodePost } = require('../lib/tx/v1');
+const { decodeFollowing } = require('../lib/tx/v1');
 const { calculateEnergy } = require('../helpers/calculate');
 
 //---------------------------------------------------
@@ -119,14 +119,13 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     if (txs.operation == 'post') {
         console.log('   >  >  > post');
         try {
-            const content = decodePost(txs.params.content);
             const hashCode = hash(txs);
             console.log(hashCode);
             console.log(content);
 
             let newPost = new Parse.Object('Post');
-            newPost.set('type', content.type);
-            newPost.set('text', content.text);
+            newPost.set('type', txs.params.content.type);
+            newPost.set('text', txs.params.content.text);
             newPost.set('hash', hashCode);
             
             _TO_SAVE.push(newPost);
