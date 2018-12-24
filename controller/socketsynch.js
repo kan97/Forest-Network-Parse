@@ -10,6 +10,19 @@ const { decodeFollowing } = require('../lib/tx/v1');
 const { calculateEnergy } = require('../helpers/calculate');
 
 //---------------------------------------------------
+//UTILS --
+saveTransaction = (txs, bandwidthTime, blockNumber) => {
+    let Transac = new Parse.Object('Transaction');
+    Transac.set('content', txs.params.content);
+    Transac.set('user', txs.account);
+    Transac.set('operation', txs.operation);
+    Transac.set('blockNumber', blockNumber);
+    Transac.set('bandwidthTime', new Date(bandwidthTime));
+
+    Transac.save(null, {useMasterKey: true});
+};
+
+//---------------------------------------------------
 const subscribeHandler = async (event) => {
     let blockQuery = new Parse.Query('Block');
     blockQuery.exists('currBlock');
@@ -54,7 +67,8 @@ handleSingleBlock = async function (res, currBlock) {
                 let base64Txs = Buffer.from(res.block.data.txs[0], 'base64');
                 let txs = decode(base64Txs);
                 let bandwidthTime = res.block.header.time;
-                await handleSingleTransaction(txs, bandwidthTime);    
+                saveTransaction(txs, bandwidthTime, currBlock)
+                await handleSingleTransaction(txs, bandwidthTime);
             } catch(err) {
                 console.log(err);
             }
@@ -135,7 +149,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
         console.log('   >  >  > post');
         try {
             const hashCode = hash(txs);
-            console.log(hashCode);
+            //console.log(hashCode);
             console.log(txs.params.content);
 
             let newPost = new Parse.Object('Post');
@@ -150,8 +164,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
             console.log(err);
         }
     }
-    console.log(txs);
-    console.log(txsUser);
+
     if (txs.operation == 'update_account' && txsUser) {
         console.log('   >  >  > update_account');
         const updateKey = txs.params.key;
@@ -185,7 +198,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
         console.log('   >  >  > interact');
         try {
             const hashCode = hash(txs);
-            console.log(hashCode);
+            //console.log(hashCode);
 
             let newInteract = new Parse.Object('Interact');
             newInteract.set('postHash', txs.params.object);
