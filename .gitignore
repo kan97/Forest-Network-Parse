@@ -45,6 +45,7 @@ jspm_packages
 
 #self
 package-lock.json
+shrinkwrap.yaml
 
 # env file
 .env
