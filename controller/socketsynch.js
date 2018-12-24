@@ -13,13 +13,13 @@ const { calculateEnergy } = require('../helpers/calculate');
 //UTILS --
 saveTransaction = (txs, bandwidthTime, blockNumber) => {
     let Transac = new Parse.Object('Transaction');
-    Transac.set('content', txs.params.content);
+    Transac.set('params', txs.params);
     Transac.set('user', txs.account);
     Transac.set('operation', txs.operation);
     Transac.set('blockNumber', blockNumber);
     Transac.set('bandwidthTime', new Date(bandwidthTime));
 
-    Transac.save(null, {useMasterKey: true});
+    Transac.save(null, { useMasterKey: true });
 };
 
 //---------------------------------------------------
@@ -60,7 +60,7 @@ handleSingleBlock = async function (res, currBlock) {
     if (!res.block.data.txs) {
         console.log('[!!] - No Transaction!!!!');
     } else {
-        console.log('[>>] - Total ' + res.block.data.txs.length + ' transactions' );
+        console.log('[>>] - Total ' + res.block.data.txs.length + ' transactions');
         for (let i = 0; i < res.block.data.txs.length; i++) {
             console.log('   >  transaction ' + i);
             try {
@@ -69,7 +69,7 @@ handleSingleBlock = async function (res, currBlock) {
                 let bandwidthTime = res.block.header.time;
                 saveTransaction(txs, bandwidthTime, currBlock)
                 await handleSingleTransaction(txs, bandwidthTime);
-            } catch(err) {
+            } catch (err) {
                 console.log(err);
             }
         }
@@ -120,7 +120,12 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
         console.log('   >  >  > payment');
 
         let amount = txs.params.amount;
-        const hashCode = hash(txs);
+        let hashCode = '';
+        try {
+            hashCode = hash(txs);
+        } catch (err) {
+            console.log(err);
+        }
 
         let newPayment = new Parse.Object('Payment');
         newPayment.set('amount', amount || 0);
@@ -148,9 +153,12 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     if (txs.operation == 'post') {
         console.log('   >  >  > post');
         try {
-            const hashCode = hash(txs);
-            //console.log(hashCode);
-            console.log(txs.params.content);
+            let hashCode = '';
+            try {
+                hashCode = hash(txs);
+            } catch (err) {
+                console.log(err);
+            }
 
             let newPost = new Parse.Object('Post');
             newPost.set('user', txs.account);
@@ -158,7 +166,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
             newPost.set('text', txs.params.content.text);
             newPost.set('hash', hashCode);
             newPost.set('time', new Date(bandwidthTime));
-            
+
             _TO_SAVE.push(newPost);
         } catch (err) {
             console.log(err);
@@ -197,14 +205,19 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     if (txs.operation == 'interact') {
         console.log('   >  >  > interact');
         try {
-            const hashCode = hash(txs);
-            //console.log(hashCode);
+            let hashCode = '';
+            try {
+                hashCode = hash(txs);
+            } catch (err) {
+                console.log(err);
+            }
 
             let newInteract = new Parse.Object('Interact');
             newInteract.set('postHash', txs.params.object);
             newInteract.set('user', txs.account);
             newInteract.set('hash', hashCode);
             newInteract.set('time', new Date(bandwidthTime));
+            newInteract.set('type', txs.params.content.type);
 
             if (txs.params.content.type == 1) {
                 newInteract.set('comment', txs.params.content.text);
@@ -212,21 +225,21 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
             if (txs.params.content.type == 2) {
                 newInteract.set('reaction', txs.params.content.reaction);
             }
-
+            
             _TO_SAVE.push(newInteract);
         } catch (err) {
             console.log(err);
         }
     }
 
-    await Parse.Object.saveAll(_TO_SAVE, {useMasterKey: true});
+    await Parse.Object.saveAll(_TO_SAVE, { useMasterKey: true });
     return Promise.resolve(true);
 };
 
 //---------------------------------------------------
 //=====================[main]========================
 let moduleExporter = {};
-moduleExporter.init = function() {
+moduleExporter.init = function () {
     client.subscribe({
         query: "tm.event='NewBlock'"
     }, subscribeHandler).catch(e => console.log("ERR", e));
