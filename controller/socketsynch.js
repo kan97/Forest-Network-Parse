@@ -46,15 +46,19 @@ const subscribeHandler = async (event) => {
 handleSingleBlock = async function (res, currBlock) {
     if (!res.block.data.txs) {
         console.log('[!!] - No Transaction!!!!');
-        return Promise.resolve(false);
-    }
-    
-    for (let i = 0; i < res.block.data.txs.length; i++) {
-        console.log('   >  transaction ' + i);
-        let base64Txs = Buffer.from(res.block.data.txs[0], 'base64');
-        let txs = decode(base64Txs);
-        let bandwidthTime = res.block.header.time;
-        await handleSingleTransaction(txs, bandwidthTime);
+    } else {
+        console.log('[>>] - Total ' + res.block.data.txs.length + ' transactions' );
+        for (let i = 0; i < res.block.data.txs.length; i++) {
+            console.log('   >  transaction ' + i);
+            try {
+                let base64Txs = Buffer.from(res.block.data.txs[0], 'base64');
+                let txs = decode(base64Txs);
+                let bandwidthTime = res.block.header.time;
+                await handleSingleTransaction(txs, bandwidthTime);    
+            } catch(err) {
+                console.log(err);
+            }
+        }
     }
 
     let blockQuery = new Parse.Query('Block');
@@ -100,10 +104,19 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
 
     if (txs.operation == 'payment') {
         console.log('   >  >  > payment');
+
         let amount = txs.params.amount;
+        const hashCode = hash(txs);
+
+        let newPayment = new Parse.Object('Payment');
+        newPayment.set('amount', amount || 0);
+        newPayment.set('time', new Date(bandwidthTime));
+        newPayment.set('hash', hashCode);
+
         if (txsUser) {
             console.log('   >  >  >  >  ' + txsUser + 'decrease: ' + amount);
             txsUser.increment('balance', amount * (-1));
+            newPayment.set('srcAddress', txs.account);
         }
 
         let recvUserQuery = new Parse.Query('User');
@@ -112,8 +125,10 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
         if (recvUser) {
             console.log('   >  >  >  >  ' + recvUser + 'decrease: ' + amount);
             recvUser.increment('balance', amount);
+            newPayment.set('desAddress', txs.account);
             _TO_SAVE.push(recvUser);
         }
+        _TO_SAVE.push(newPayment);
     }
 
     if (txs.operation == 'post') {
@@ -121,12 +136,14 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
         try {
             const hashCode = hash(txs);
             console.log(hashCode);
-            console.log(content);
+            console.log(txs.params.content);
 
             let newPost = new Parse.Object('Post');
+            newPost.set('user', txs.account);
             newPost.set('type', txs.params.content.type);
             newPost.set('text', txs.params.content.text);
             newPost.set('hash', hashCode);
+            newPost.set('time', new Date(bandwidthTime));
             
             _TO_SAVE.push(newPost);
         } catch (err) {
@@ -167,16 +184,23 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     if (txs.operation == 'interact') {
         console.log('   >  >  > interact');
         try {
+            const hashCode = hash(txs);
+            console.log(hashCode);
+
             let newInteract = new Parse.Object('Interact');
-            newInteract.set('postHash', txs.params.object)
+            newInteract.set('postHash', txs.params.object);
+            newInteract.set('user', txs.account);
+            newInteract.set('hash', hashCode);
+            newInteract.set('time', new Date(bandwidthTime));
+
             if (txs.params.content.type == 1) {
-                newInteract.set('comment', txs.params.content.text)
+                newInteract.set('comment', txs.params.content.text);
             }
             if (txs.params.content.type == 2) {
-                newInteract.set('reaction', txs.params.content.reaction)
+                newInteract.set('reaction', txs.params.content.reaction);
             }
 
-            _TO_SAVE.push(newPost);
+            _TO_SAVE.push(newInteract);
         } catch (err) {
             console.log(err);
         }
@@ -190,7 +214,6 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
 //=====================[main]========================
 let moduleExporter = {};
 moduleExporter.init = function() {
-    console.log('=====================[START-SYNCH]========================');
     client.subscribe({
         query: "tm.event='NewBlock'"
     }, subscribeHandler).catch(e => console.log("ERR", e));
