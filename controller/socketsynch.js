@@ -135,8 +135,8 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
     }
     console.log(txs);
     console.log(txsUser);
-    if (txs.operation == 'update_acount' && txsUser) {
-        console.log('   >  >  > update_acount');
+    if (txs.operation == 'update_account' && txsUser) {
+        console.log('   >  >  > update_account');
         const updateKey = txs.params.key;
 
         if (updateKey == 'name') {
@@ -190,6 +190,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
 //=====================[main]========================
 let moduleExporter = {};
 moduleExporter.init = function() {
+    console.log('=====================[START-SYNCH]========================');
     client.subscribe({
         query: "tm.event='NewBlock'"
     }, subscribeHandler).catch(e => console.log("ERR", e));
