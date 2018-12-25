@@ -2,7 +2,7 @@ const asyncLock = require('async-lock');
 let lockCurrBlock = new asyncLock();
 
 const { RpcClient } = require('tendermint');
-const client = RpcClient('wss://komodo.forest.network:443');
+const client = RpcClient('wss://dragonfly.forest.network:443');
 
 const { decode, hash } = require('../lib/tx/index');
 const base32 = require('base32.js');
