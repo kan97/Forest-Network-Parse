@@ -15,9 +15,9 @@ const parseDashboardOption = require('./parse-config/parse-dashboard');
 var parseDashboard = new ParseDashboard(parseDashboardOption);
 app.use('/dashboard', parseDashboard);
 
-let socketsynch = require('./controller/socketsynch');
 console.log(typeof process.env.DISABLE_FOREST_NETWORK_SYNCH);
 if (!(process.env.DISABLE_FOREST_NETWORK_SYNCH == "true")) {
+  let socketsynch = require('./controller/socketsynch');
   console.log('=====================[START-SYNCH]========================');
   socketsynch.init();
 }
