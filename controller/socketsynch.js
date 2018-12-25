@@ -9,6 +9,7 @@ const base32 = require('base32.js');
 const { decodeFollowing } = require('../lib/tx/v1');
 const { calculateEnergy } = require('../helpers/calculate');
 
+const UTILS = require('../helpers/UTILS');
 //---------------------------------------------------
 //UTILS --
 saveTransaction = (txs, bandwidthTime, blockNumber) => {
@@ -135,7 +136,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
         if (txsUser) {
             console.log('   >  >  >  >  ' + txsUser + 'decrease: ' + amount);
             txsUser.increment('balance', amount * (-1));
-            newPayment.set('srcAddress', txs.account);
+            newPayment.set('srcAddress', UTILS.createBlankPointerTo('User', txsUser.id));
         }
 
         let recvUserQuery = new Parse.Query('User');
@@ -144,7 +145,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
         if (recvUser) {
             console.log('   >  >  >  >  ' + recvUser + 'decrease: ' + amount);
             recvUser.increment('balance', amount);
-            newPayment.set('desAddress', txs.account);
+            newPayment.set('desAddress', UTILS.createBlankPointerTo('User', recvUser.id));
             _TO_SAVE.push(recvUser);
         }
         _TO_SAVE.push(newPayment);
@@ -152,25 +153,22 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
 
     if (txs.operation == 'post') {
         console.log('   >  >  > post');
+        let hashCode = '';
         try {
-            let hashCode = '';
-            try {
-                hashCode = hash(txs);
-            } catch (err) {
-                console.log(err);
-            }
-
-            let newPost = new Parse.Object('Post');
-            newPost.set('user', txs.account);
-            newPost.set('type', txs.params.content.type);
-            newPost.set('text', txs.params.content.text);
-            newPost.set('hash', hashCode);
-            newPost.set('time', new Date(bandwidthTime));
-
-            _TO_SAVE.push(newPost);
+            hashCode = hash(txs);
         } catch (err) {
             console.log(err);
         }
+        let newPost = new Parse.Object('Post');
+        let userPointer = await UTILS.createPointerTo('User', 'publicKey', txs.account);
+
+        newPost.set('user', userPointer);
+        newPost.set('type', txs.params.content.type);
+        newPost.set('text', txs.params.content.text);
+        newPost.set('hash', hashCode);
+        newPost.set('time', new Date(bandwidthTime));
+        console.log(newPost.get('user'));
+        _TO_SAVE.push(newPost);
     }
 
     if (txs.operation == 'update_account' && txsUser) {
@@ -213,8 +211,8 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
             }
 
             let newInteract = new Parse.Object('Interact');
-            newInteract.set('postHash', txs.params.object);
-            newInteract.set('user', txs.account);
+            newInteract.set('postHash', await UTILS.createPointerTo('Post', 'hash', txs.params.object));
+            newInteract.set('user', await UTILS.createPointerTo('User', 'publicKey', txs.account));
             newInteract.set('hash', hashCode);
             newInteract.set('time', new Date(bandwidthTime));
             newInteract.set('type', txs.params.content.type);
@@ -225,7 +223,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
             if (txs.params.content.type == 2) {
                 newInteract.set('reaction', txs.params.content.reaction);
             }
-            
+
             _TO_SAVE.push(newInteract);
         } catch (err) {
             console.log(err);

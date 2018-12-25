@@ -20,7 +20,9 @@ UTILS.createPointerTo = (ClassName, fieldName, fieldValue) => {
             let CreatedObject = new Parse.Object(ClassName);
             CreatedObject.set(fieldName, fieldValue);
             return CreatedObject.save().then((realObject) => {
-                return realObject.createWithoutData(result.id);
+                return ParseObject.createWithoutData(realObject.id);
+            }).catch(() => {
+                return undefined;
             });
         }
     });
