@@ -88,7 +88,7 @@ TimelineModule.getPostsTimeline = async (request) => {
     const reactionPostQuery = new Parse.Query('Interact');
     reactionPostQuery.containedIn('postHash', result);
     reactionPostQuery.exists('reaction');
-    reactionPostQuery.notEqualTo('reaction', 0);
+    //reactionPostQuery.notEqualTo('reaction', 0);
     reactionPostQuery.include('user');
     reactionPostQuery.ascending('time');
     reactionPostQuery.select(['user.name', 'user.objectId', 'user.picture', 'reaction', 'time', 'postHash']);
@@ -107,6 +107,12 @@ TimelineModule.getPostsTimeline = async (request) => {
             let postId = interact.get('postHash').id;
             interact = interact.set('user', interact.get('user').toJSON());
             interact = interact.toJSON();
+
+            if (interact.reaction == 0 || !interact.reaction) {
+                addedUser[postId].push(interact.user.ObjectId);
+                return;
+            }
+
             if (!reactions[postId]) {
                 reactions[postId] = [];
             }
@@ -114,11 +120,12 @@ TimelineModule.getPostsTimeline = async (request) => {
                 addedUser[postId] = [];
             }
 
-            if (!addedUser[postId].includes(interact.user.ObjectId)) {
+            if (!addedUser[postId].includes(interact.user.ObjectId) &&) {
                 reactions[postId].push(interact);
                 addedUser[postId].push(interact.user.ObjectId);
-                if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id)
-                myReaction[postId] = interact.reaction;
+                if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id) {
+                    myReaction[postId] = interact.reaction;
+                }
             }
         });
 
@@ -198,6 +205,12 @@ TimelineModule.getPostsExplore = async (request) => {
             let postId = interact.get('postHash').id;
             interact = interact.set('user', interact.get('user').toJSON());
             interact = interact.toJSON();
+
+            if (interact.reaction == 0 || !interact.reaction) {
+                addedUser[postId].push(interact.user.ObjectId);
+                return;
+            }
+
             if (!reactions[postId]) {
                 reactions[postId] = [];
             }
@@ -205,11 +218,12 @@ TimelineModule.getPostsExplore = async (request) => {
                 addedUser[postId] = [];
             }
 
-            if (!addedUser[postId].includes(interact.user.ObjectId)) {
+            if (!addedUser[postId].includes(interact.user.ObjectId) &&) {
                 reactions[postId].push(interact);
                 addedUser[postId].push(interact.user.ObjectId);
-                if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id)
-                myReaction[postId] = interact.reaction;
+                if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id) {
+                    myReaction[postId] = interact.reaction;
+                }
             }
         });
 
@@ -302,6 +316,12 @@ TimelineModule.getPostsNewFeeds = async (request) => {
             let postId = interact.get('postHash').id;
             interact = interact.set('user', interact.get('user').toJSON());
             interact = interact.toJSON();
+
+            if (interact.reaction == 0 || !interact.reaction) {
+                addedUser[postId].push(interact.user.ObjectId);
+                return;
+            }
+
             if (!reactions[postId]) {
                 reactions[postId] = [];
             }
@@ -309,11 +329,12 @@ TimelineModule.getPostsNewFeeds = async (request) => {
                 addedUser[postId] = [];
             }
 
-            if (!addedUser[postId].includes(interact.user.ObjectId)) {
+            if (!addedUser[postId].includes(interact.user.ObjectId) &&) {
                 reactions[postId].push(interact);
                 addedUser[postId].push(interact.user.ObjectId);
-                if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id)
-                myReaction[postId] = interact.reaction;
+                if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id) {
+                    myReaction[postId] = interact.reaction;
+                }
             }
         });
 
