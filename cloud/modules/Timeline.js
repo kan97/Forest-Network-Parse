@@ -108,16 +108,16 @@ TimelineModule.getPostsTimeline = async (request) => {
             interact = interact.set('user', interact.get('user').toJSON());
             interact = interact.toJSON();
 
-            if (interact.reaction == 0 || !interact.reaction) {
-                addedUser[postId].push(interact.user.ObjectId);
-                return;
-            }
-
             if (!reactions[postId]) {
                 reactions[postId] = [];
             }
             if (!addedUser[postId]) {
                 addedUser[postId] = [];
+            }
+
+            if (interact.reaction == 0 || !interact.reaction) {
+                addedUser[postId].push(interact.user.ObjectId);
+                return;
             }
 
             if (!addedUser[postId].includes(interact.user.ObjectId)) {
@@ -206,16 +206,16 @@ TimelineModule.getPostsExplore = async (request) => {
             interact = interact.set('user', interact.get('user').toJSON());
             interact = interact.toJSON();
 
-            if (interact.reaction == 0 || !interact.reaction) {
-                addedUser[postId].push(interact.user.ObjectId);
-                return;
-            }
-
             if (!reactions[postId]) {
                 reactions[postId] = [];
             }
             if (!addedUser[postId]) {
                 addedUser[postId] = [];
+            }
+
+            if (interact.reaction == 0 || !interact.reaction) {
+                addedUser[postId].push(interact.user.ObjectId);
+                return;
             }
 
             if (!addedUser[postId].includes(interact.user.ObjectId)) {
@@ -317,16 +317,16 @@ TimelineModule.getPostsNewFeeds = async (request) => {
             interact = interact.set('user', interact.get('user').toJSON());
             interact = interact.toJSON();
 
-            if (interact.reaction == 0 || !interact.reaction) {
-                addedUser[postId].push(interact.user.ObjectId);
-                return;
-            }
-
             if (!reactions[postId]) {
                 reactions[postId] = [];
             }
             if (!addedUser[postId]) {
                 addedUser[postId] = [];
+            }
+
+            if (interact.reaction == 0 || !interact.reaction) {
+                addedUser[postId].push(interact.user.ObjectId);
+                return;
             }
 
             if (!addedUser[postId].includes(interact.user.ObjectId)) {
