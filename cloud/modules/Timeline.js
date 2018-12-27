@@ -120,7 +120,7 @@ TimelineModule.getPostsTimeline = async (request) => {
                 addedUser[postId] = [];
             }
 
-            if (!addedUser[postId].includes(interact.user.ObjectId) &&) {
+            if (!addedUser[postId].includes(interact.user.ObjectId)) {
                 reactions[postId].push(interact);
                 addedUser[postId].push(interact.user.ObjectId);
                 if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id) {
@@ -218,7 +218,7 @@ TimelineModule.getPostsExplore = async (request) => {
                 addedUser[postId] = [];
             }
 
-            if (!addedUser[postId].includes(interact.user.ObjectId) &&) {
+            if (!addedUser[postId].includes(interact.user.ObjectId)) {
                 reactions[postId].push(interact);
                 addedUser[postId].push(interact.user.ObjectId);
                 if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id) {
@@ -329,7 +329,7 @@ TimelineModule.getPostsNewFeeds = async (request) => {
                 addedUser[postId] = [];
             }
 
-            if (!addedUser[postId].includes(interact.user.ObjectId) &&) {
+            if (!addedUser[postId].includes(interact.user.ObjectId)) {
                 reactions[postId].push(interact);
                 addedUser[postId].push(interact.user.ObjectId);
                 if (!myReaction[postId] && request.user && interact.user.ObjectId == request.user.id) {
