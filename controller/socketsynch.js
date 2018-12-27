@@ -7,7 +7,7 @@ const client = RpcClient('wss://dragonfly.forest.network:443');
 const { decode, hash } = require('../lib/tx/index');
 const base32 = require('base32.js');
 const { decodeFollowing } = require('../lib/tx/v1');
-const { calculateEnergy } = require('../helpers/calculate');
+const { calculateBanwidth } = require('../helpers/calculate');
 
 const UTILS = require('../helpers/UTILS');
 //---------------------------------------------------
@@ -65,11 +65,11 @@ handleSingleBlock = async function (res, currBlock) {
         for (let i = 0; i < res.block.data.txs.length; i++) {
             console.log('   >  transaction ' + i);
             try {
-                let base64Txs = Buffer.from(res.block.data.txs[0], 'base64');
+                let base64Txs = Buffer.from(res.block.data.txs[i], 'base64');
                 let txs = decode(base64Txs);
                 let bandwidthTime = res.block.header.time;
-                saveTransaction(txs, bandwidthTime, currBlock)
-                await handleSingleTransaction(txs, bandwidthTime);
+                saveTransaction(txs, bandwidthTime, currBlock);
+                await handleSingleTransaction(base64Txs, bandwidthTime);
             } catch (err) {
                 console.log(err);
             }
@@ -87,18 +87,21 @@ handleSingleBlock = async function (res, currBlock) {
 
 //---------------------------------------------------
 // Parse A Single Transaction
-handleSingleTransaction = async function (txs, bandwidthTime) {
+handleSingleTransaction = async function (base64Txs, bandwidthTime) {
     let _TO_SAVE = [];
     console.log('   >  >  bandwidthTime ' + bandwidthTime);
 
+    let txs = decode(base64Txs);
     let query = new Parse.Query('User');
     query.equalTo('publicKey', txs.account);
     let txsUser = await query.first();
 
     if (txsUser) {
         console.log('   >  >  account ' + txs.account);
+        txsUser.set('bandwidth', calculateBanwidth(txsUser.get('bandwidthTime'), txsUser.get('bandwidth'), base64Txs.length));
         txsUser.set('sequence', txs.sequence);
         txsUser.set('bandwidthTime', new Date(bandwidthTime));
+
         _TO_SAVE.push(txsUser);
     } else {
         console.log('[!!!] => ' + txs.account + ' not found in db');
@@ -113,6 +116,7 @@ handleSingleTransaction = async function (txs, bandwidthTime) {
 
         newUser.set('username', txs.params.address);
         newUser.set('password', '1');
+        newUser.set('bandwidth', 0);
 
         _TO_SAVE.push(newUser);
     }
